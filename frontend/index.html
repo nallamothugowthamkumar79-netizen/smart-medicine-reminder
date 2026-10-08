@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Medicine Reminder Portal | National Digital Health Initiative</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
+</head>
+<body>
+  <div class="tricolor-stripe"></div>
+  <div class="gov-top-bar">
+    <div class="gov-top-container">
+      <div class="gov-emblem-text">
+        <span>🇮🇳</span>
+        <span>भारत सरकार | GOVERNMENT OF INDIA</span>
+        <span style="opacity:0.4;">|</span>
+        <span style="color:#93c5fd;">Ministry of Health & Family Welfare</span>
+      </div>
+      <div class="gov-top-tools">
+        <div class="helpline-badge"><span>📞</span> TOLL FREE: 1075 / 104</div>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <span style="font-size:0.78rem; color:#9ca3af; margin-right:4px;">Font:</span>
+          <button class="accessibility-btn" id="btn-font-dec">A-</button>
+          <button class="accessibility-btn" id="btn-font-reset">A</button>
+          <button class="accessibility-btn" id="btn-font-inc">A+</button>
+        </div>
+        <button class="accessibility-btn" id="btn-contrast-toggle">◑ Contrast</button>
+      </div>
+    </div>
+  </div>
+  <header class="main-header">
+    <div class="header-container">
+      <a href="#" class="brand-section" data-view="landing">
+        <svg class="national-emblem-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="30" fill="#0B2545" stroke="#C59B27" stroke-width="2.5"/>
+          <path d="M32 10 L34 26 L48 32 L34 38 L32 54 L30 38 L16 32 L30 26 Z" fill="#F26419" opacity="0.3"/>
+          <rect x="28" y="16" width="8" height="32" rx="2" fill="#FFFFFF"/>
+          <rect x="16" y="28" width="32" height="8" rx="2" fill="#FFFFFF"/>
+          <circle cx="32" cy="32" r="5" fill="#1B8A5A"/>
+          <circle cx="32" cy="32" r="10" stroke="#C59B27" stroke-width="1.5" stroke-dasharray="2 2"/>
+        </svg>
+        <div class="brand-titles">
+          <h2>Smart Medicine Reminder Portal</h2>
+          <div class="dept-sub">National Digital Health Mission • Citizen Prescription Care</div>
+          <div class="hindi-sub">राष्ट्रीय औषधि अनुस्मारक प्रणाली • स्वास्थ्य एवं परिवार कल्याण</div>
+        </div>
+      </a>
+      <div class="header-right-badges">
+        <div class="digital-badge">
+          <span style="font-size:1.6rem;">☁️</span>
+          <div>
+            <div style="font-size:0.75rem; font-weight:700; color:var(--gov-blue); text-transform:uppercase;">AWS Cloud Native</div>
+            <div style="font-size:0.8rem; color:#64748b; font-weight:600;">SNS • Lambda • RDS</div>
+          </div>
+        </div>
+        <div class="live-time-box">
+          <div class="time-digits" id="live-clock">--:--:--</div>
+          <div class="zone-label">Official Portal Time</div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <nav class="gov-navbar">
+    <div class="gov-nav-container">
+      <ul class="gov-nav-links">
+        <li class="guest-only"><a href="#" class="gov-nav-link active" data-view="landing">🏛️ Home / मुख्य पृष्ठ</a></li>
+        <li class="guest-only"><a href="#" class="gov-nav-link" onclick="document.getElementById('modal-login').classList.add('open')">🔐 Citizen Login</a></li>
+        <li class="guest-only"><a href="#" class="gov-nav-link" onclick="document.getElementById('modal-register').classList.add('open')">✍️ Registration</a></li>
+        <li class="auth-only"><a href="#" class="gov-nav-link active" data-view="dashboard">📊 Patient Dashboard</a></li>
+        <li class="auth-only"><a href="#" class="gov-nav-link" data-view="medicines">💊 My Medicines</a></li>
+        <li class="auth-only"><a href="#" class="gov-nav-link" data-view="history">📜 History & Compliance</a></li>
+        <li class="auth-only"><a href="#" class="gov-nav-link" data-view="notifications">🔔 Alerts & SMS Log</a></li>
+        <li class="auth-only"><a href="#" class="gov-nav-link" data-view="profile">👤 Citizen Profile</a></li>
+      </ul>
+      <div class="auth-only" style="display:flex; align-items:center; gap:12px;">
+        <span style="color:#ffffff; font-weight:600; font-size:0.9rem;">Beneficiary: <strong id="user-display-name" style="color:var(--gov-gold-light);">Citizen</strong></span>
+        <button class="btn btn-outline btn-sm btn-logout" style="border-color:#f87171; color:#f87171; padding:4px 10px;">Log Out</button>
+      </div>
+    </div>
+  </nav>
+  <div class="news-ticker-bar">
+    <div class="ticker-content">
+      <span class="ticker-tag">OFFICIAL ADVISORY</span>
+      <marquee behavior="scroll" direction="left" scrollamount="6">
+        📢 Automated SMS & Email dosage reminders are active 24x7 via AWS Cloud Computing. | Ensure your registered mobile phone number is verified to receive timely alerts. | Helpline: 1075.
+      </marquee>
+    </div>
+  </div>
+  <main class="main-content">
+    <section id="view-landing" class="view-section active">
+      <div class="gov-hero-card">
+        <div>
+          <div style="display:inline-block; background:var(--gov-saffron-light); color:var(--gov-saffron); font-weight:800; font-size:0.85rem; padding:4px 12px; border-radius:4px; margin-bottom:12px; border:1px solid #fed7aa;">
+            NATIONAL CITIZEN HEALTH SERVICE
+          </div>
+          <h1 class="gov-hero-title">Timely Medication Reminders for Every Citizen.</h1>
+          <p class="gov-hero-desc">
+            Never miss your medicine. The <strong>Smart Medicine Reminder Portal (SMRP)</strong> ensures patients, seniors, and caregivers receive automated, verified SMS & Email alerts exactly when medicines are due.
+          </p>
+          <div style="display:flex; gap:14px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-lg guest-only" onclick="document.getElementById('modal-register').classList.add('open')">
+              ✍️ Register as Beneficiary →
+            </button>
+            <button class="btn btn-secondary btn-lg guest-only" onclick="document.getElementById('modal-login').classList.add('open')">
+              🔐 Existing Citizen Login
+            </button>
+            <button class="btn btn-primary btn-lg auth-only" data-view="dashboard">
+              📊 Access Patient Dashboard →
+            </button>
+          </div>
+        </div>
+        <div class="official-stamp-box">
+          <div style="font-size:3.5rem; margin-bottom:8px;">🏛️ 🛡️ 💊</div>
+          <h3 style="color:var(--gov-navy); font-size:1.2rem; font-weight:800; margin-bottom:6px;">Ministry Verified Portal</h3>
+          <p style="font-size:0.92rem; color:var(--text-secondary); margin-bottom:14px;">
+            High-availability event-driven scheduling built with Amazon CloudWatch, AWS Lambda, and Amazon SNS.
+          </p>
+          <div style="background:#ffffff; border:1px solid var(--border-color); padding:8px 14px; border-radius:4px; font-weight:700; font-size:0.85rem; color:var(--gov-green); display:inline-flex; align-items:center; gap:6px;">
+            <span>✓</span> 24x7 Cloud Reminders Active
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header-gov">
+        <h2><span>🛡️</span> Portal Pillars & Citizen Capabilities</h2>
+        <span style="font-weight:700; color:var(--text-secondary); font-size:0.9rem;">MeitY & GIGW 3.0 Accessible</span>
+      </div>
+
+      <div class="features-grid-gov">
+        <div class="gov-service-card">
+          <div class="gov-service-icon">⏰</div>
+          <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:8px; color:var(--gov-navy);">Autonomous Event Scheduling</h3>
+          <p style="color:var(--text-secondary); font-size:0.95rem;">AWS Lambda checks schedules automatically every minute. Citizens receive alerts without needing to keep the browser open.</p>
+        </div>
+        <div class="gov-service-card">
+          <div class="gov-service-icon">📱</div>
+          <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:8px; color:var(--gov-navy);">Multi-Channel SMS & Email</h3>
+          <p style="color:var(--text-secondary); font-size:0.95rem;">Direct telecom transactional SMS delivery and Email notifications dispatch via Amazon Simple Notification Service (SNS).</p>
+        </div>
+        <div class="gov-service-card">
+          <div class="gov-service-icon">👵</div>
+          <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:8px; color:var(--gov-navy);">Elderly & Universal Accessible</h3>
+          <p style="color:var(--text-secondary); font-size:0.95rem;">High-contrast visual cards, audible reminder chimes, large tactile buttons, and multi-language dosage instructions.</p>
+        </div>
+        <div class="gov-service-card">
+          <div class="gov-service-icon">📊</div>
+          <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:8px; color:var(--gov-navy);">Compliance & Adherence Audit</h3>
+          <p style="color:var(--text-secondary); font-size:0.95rem;">Maintains permanent digital records of doses taken, timestamps, and adherence percentages for doctors and family caregivers.</p>
+        </div>
+      </div>
+    </section>
+    <section id="view-dashboard" class="view-section">
+      <div style="background:#ffffff; border:1px solid var(--border-color); border-left:6px solid var(--gov-blue); padding:24px 28px; border-radius:var(--radius-sm); margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="display:inline-flex; align-items:center; gap:6px; background:var(--gov-green-light); color:var(--gov-green); font-size:0.8rem; font-weight:800; padding:2px 8px; border-radius:3px; margin-bottom:6px;">
+            <span>✓</span> VERIFIED CITIZEN ACCOUNT
+          </div>
+          <h1 style="font-size:1.85rem; font-weight:800; color:var(--gov-navy);">
+            Welcome, <span id="dashboard-user-name">Beneficiary</span> 👋
+          </h1>
+          <p style="color:var(--text-secondary); font-size:1.05rem;">
+            National Digital Health Portal — Daily Prescription Management & Real-Time Tracking.
+          </p>
+        </div>
+        <div>
+          <button class="btn btn-primary btn-lg btn-open-add-med">
+            + Schedule New Medicine
+          </button>
+        </div>
+      </div>
+
+      <div class="gov-metrics-row">
+        <div class="gov-metric-card">
+          <div class="gov-metric-num" id="stat-total-today">0</div>
+          <div class="gov-metric-label">Scheduled Today</div>
+        </div>
+        <div class="gov-metric-card green-accent">
+          <div class="gov-metric-num" id="stat-taken-today" style="color:var(--status-taken);">0</div>
+          <div class="gov-metric-label">Doses Taken</div>
+        </div>
+        <div class="gov-metric-card amber-accent">
+          <div class="gov-metric-num" id="stat-missed-today" style="color:var(--status-missed);">0</div>
+          <div class="gov-metric-label">Doses Missed</div>
+        </div>
+        <div class="gov-metric-card gold-accent">
+          <div class="gov-metric-num" id="stat-next-reminder" style="color:var(--gov-saffron); font-size:1.6rem;">None</div>
+          <div class="gov-metric-label">Next Reminder Time</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;">
+        <button class="btn btn-primary btn-open-add-med">+ Add Medicine</button>
+        <button class="btn btn-secondary" data-view="medicines">📋 View Prescriptions</button>
+        <button class="btn btn-secondary" data-view="history">📜 Adherence History</button>
+        <button class="btn btn-secondary" data-view="notifications">🔔 SMS Logs</button>
+        <button class="btn btn-secondary" data-view="profile">👤 Profile</button>
+      </div>
+
+      <div class="section-header-gov">
+        <h2><span>📅</span> Today's Prescribed Dosage Schedule</h2>
+        <span style="color:var(--text-muted); font-size:0.9rem; font-weight:600;">Automated Live Refresh Active</span>
+      </div>
+
+      <div id="today-doses-list" class="dose-list"></div>
+      <div id="today-empty-state" class="official-stamp-box" style="display:none; margin-top:20px;">
+        <div style="font-size:3rem; margin-bottom:8px;">📋</div>
+        <h3 style="color:var(--gov-navy); font-size:1.3rem;">No Medicines Scheduled For Today</h3>
+        <p style="color:var(--text-secondary); margin: 6px 0 16px;">You currently have no pending doses on your schedule.</p>
+        <button class="btn btn-primary btn-open-add-med">+ Add Medicine Schedule</button>
+      </div>
+    </section>
+
+    <section id="view-medicines" class="view-section">
+      <div class="section-header-gov">
+        <div>
+          <h2><span>💊</span> Active Medicine Inventory & Schedules</h2>
+          <p style="color:var(--text-secondary); font-size:0.95rem; margin-top:4px;">Configure dosages, instructions, daily schedule timings, and active statuses.</p>
+        </div>
+        <button class="btn btn-primary btn-open-add-med">+ Add New Medicine</button>
+      </div>
+      <div id="medicines-card-grid" class="features-grid-gov"></div>
+      <div id="medicines-empty-state" class="official-stamp-box" style="display:none;">
+        <div style="font-size:3rem; margin-bottom:8px;">💊</div>
+        <h3 style="color:var(--gov-navy);">No Prescribed Medicines Registered</h3>
+        <p style="color:var(--text-secondary); margin:6px 0 16px;">Register your prescribed medications to enable automated SMS & Email alerts.</p>
+        <button class="btn btn-primary btn-open-add-med">+ Add Prescribed Medicine</button>
+      </div>
+    </section>
+    <section id="view-history" class="view-section">
+      <div class="section-header-gov">
+        <div>
+          <h2><span>📊</span> Medication Adherence Audit & History</h2>
+          <p style="color:var(--text-secondary); font-size:0.95rem; margin-top:4px;">Audit trail of doses taken with exact timestamps and overall adherence percentage.</p>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm btn-history-filter" data-filter="today">Today</button>
+          <button class="btn btn-secondary btn-sm btn-history-filter" data-filter="yesterday">Yesterday</button>
+          <button class="btn btn-secondary btn-sm btn-history-filter" data-filter="7days">Last 7 Days</button>
+          <button class="btn btn-secondary btn-sm btn-history-filter" data-filter="30days">Last 30 Days</button>
+          <button class="btn btn-secondary btn-sm btn-history-filter" data-filter="all">All Time</button>
+        </div>
+      </div>
+
+      <div class="gov-metrics-row">
+        <div class="gov-metric-card">
+          <div class="gov-metric-num" id="hist-stat-total">0</div>
+          <div class="gov-metric-label">Total Doses</div>
+        </div>
+        <div class="gov-metric-card green-accent">
+          <div class="gov-metric-num" id="hist-stat-taken" style="color:var(--status-taken);">0</div>
+          <div class="gov-metric-label">Taken On Time</div>
+        </div>
+        <div class="gov-metric-card amber-accent">
+          <div class="gov-metric-num" id="hist-stat-missed" style="color:var(--status-missed);">0</div>
+          <div class="gov-metric-label">Missed Doses</div>
+        </div>
+        <div class="gov-metric-card gold-accent" style="background:#f0fdf4; border-color:#86efac;">
+          <div class="gov-metric-num" id="hist-stat-adherence" style="color:#15803d;">100%</div>
+          <div class="gov-metric-label">National Adherence Index</div>
+        </div>
+      </div>
+
+      <div class="table-container-gov">
+        <table>
+          <thead>
+            <tr>
+              <th>Medicine Name</th>
+              <th>Scheduled Date</th>
+              <th>Scheduled Time</th>
+              <th>Dosage</th>
+              <th>Compliance Status</th>
+              <th>Logged Taken Time</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body"></tbody>
+        </table>
+      </div>
+      <div id="history-empty-state" class="official-stamp-box" style="display:none; margin-top:20px;">
+        <div style="font-size:3rem; margin-bottom:8px;">📂</div>
+        <h3 style="color:var(--gov-navy);">No Historical Records Found</h3>
+        <p style="color:var(--text-secondary);">Select a broader date filter above or complete your scheduled doses.</p>
+      </div>
+    </section>
+
+    <section id="view-notifications" class="view-section">
+      <div class="section-header-gov">
+        <div>
+          <h2><span>🔔</span> Automated Alerts & SMS Transmission Log</h2>
+          <p style="color:var(--text-secondary); font-size:0.95rem; margin-top:4px;">Audit trail of automated notifications dispatched via Amazon Simple Notification Service (SNS).</p>
+        </div>
+        <button id="btn-test-reminder" class="btn btn-primary">
+          🔔 Test AWS SNS Alert Dispatch
+        </button>
+      </div>
+      <div id="notifications-feed-list"></div>
+      <div id="notifications-empty-state" class="official-stamp-box" style="display:none;">
+        <div style="font-size:3rem; margin-bottom:8px;">🔕</div>
+        <h3 style="color:var(--gov-navy);">No Alerts Logged Yet</h3>
+        <p style="color:var(--text-secondary); margin:6px 0 16px;">Click the button above to trigger a live test reminder to your phone/email.</p>
+      </div>
+    </section>
+
+    <section id="view-profile" class="view-section">
+      <div class="section-header-gov">
+        <div>
+          <h2><span>👤</span> Citizen Profile & Notification Settings</h2>
+          <p style="color:var(--text-secondary); font-size:0.95rem; margin-top:4px;">Update registered phone number and alert preferences.</p>
+        </div>
+      </div>
+      <div style="background:#ffffff; padding:32px; border-radius:var(--radius-sm); border:1px solid var(--border-color); max-width:640px; box-shadow:var(--shadow-sm);">
+        <form id="form-profile">
+          <div class="form-group">
+            <label class="form-label" for="prof-input-name">Full Citizen Name</label>
+            <input type="text" id="prof-input-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-input-email">Registered Email ID</label>
+            <input type="email" id="prof-input-email" class="form-control" disabled style="background:#f1f5f9; cursor:not-allowed;">
+            <small style="color:var(--text-muted);">Primary email is tied to National Digital Health identity.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-input-phone">Mobile Number (For Transactional SMS Alerts)</label>
+            <input type="tel" id="prof-input-phone" class="form-control" placeholder="+91 9876543210 or +1...">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-input-pref">Reminder Channel Delivery Mode</label>
+            <select id="prof-input-pref" class="form-control">
+              <option value="both">Both (SMS & Email)</option>
+              <option value="sms">SMS Only</option>
+              <option value="email">Email Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prof-input-pass">Update Account Password (leave blank to retain current)</label>
+            <input type="password" id="prof-input-pass" class="form-control" placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">
+            💾 Save Profile Changes
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal-login" class="modal-backdrop">
+    <div class="modal-dialog-gov">
+      <div class="modal-header-gov">
+        <h2>Citizen Login / नागरिक लॉगिन</h2>
+        <button class="close-btn close-modal-btn">&times;</button>
+      </div>
+      <form id="form-login">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Registered Email ID</label>
+          <input type="email" id="login-email" class="form-control" placeholder="citizen@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">
+          🔐 Secure Login
+        </button>
+        <p style="text-align:center; margin-top:16px; color:var(--text-secondary); font-size:0.95rem;">
+          New citizen beneficiary? 
+          <a href="#" onclick="document.getElementById('modal-login').classList.remove('open'); document.getElementById('modal-register').classList.add('open');" style="color:var(--gov-blue); font-weight:700;">Register Here</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-register" class="modal-backdrop">
+    <div class="modal-dialog-gov">
+      <div class="modal-header-gov">
+        <h2>Citizen Registration / नया पंजीकरण</h2>
+        <button class="close-btn close-modal-btn">&times;</button>
+      </div>
+      <form id="form-register">
+        <div class="form-group">
+          <label class="form-label" for="reg-name">Full Citizen Name</label>
+          <input type="text" id="reg-name" class="form-control" placeholder="e.g. Ramesh Kumar" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email Address</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="ramesh@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-phone">Mobile Phone (For Amazon SNS SMS Alerts)</label>
+          <input type="tel" id="reg-phone" class="form-control" placeholder="+919876543210 or +1...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Password</label>
+            <input type="password" id="reg-password" class="form-control" placeholder="Min 6 characters" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-confirm">Confirm Password</label>
+            <input type="password" id="reg-confirm" class="form-control" placeholder="Repeat password" required minlength="6">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-pref">Reminder Delivery Preference</label>
+          <select id="reg-pref" class="form-control">
+            <option value="both">Both (SMS & Email)</option>
+            <option value="sms">SMS Only</option>
+            <option value="email">Email Only</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">
+          ✍️ Complete Citizen Registration
+        </button>
+        <p style="text-align:center; margin-top:16px; color:var(--text-secondary); font-size:0.95rem;">
+          Already registered? 
+          <a href="#" onclick="document.getElementById('modal-register').classList.remove('open'); document.getElementById('modal-login').classList.add('open');" style="color:var(--gov-blue); font-weight:700;">Sign In Here</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-medicine" class="modal-backdrop">
+    <div class="modal-dialog-gov">
+      <div class="modal-header-gov">
+        <h2 id="modal-medicine-title">Schedule Prescribed Medicine</h2>
+        <button class="close-btn close-modal-btn">&times;</button>
+      </div>
+      <form id="form-medicine">
+        <input type="hidden" id="med-input-id">
+        <div class="form-group">
+          <label class="form-label" for="med-input-name">Medicine Name</label>
+          <input type="text" id="med-input-name" class="form-control" placeholder="e.g. Paracetamol 500mg" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="med-input-type">Dosage Form / Type</label>
+            <select id="med-input-type" class="form-control">
+              <option value="Tablet">Tablet (गोली)</option>
+              <option value="Capsule">Capsule (कैप्सूल)</option>
+              <option value="Syrup">Syrup (सिरप)</option>
+              <option value="Injection">Injection (इंजेक्शन)</option>
+              <option value="Other">Other (अन्य)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="med-input-dosage">Dose Amount</label>
+            <input type="text" id="med-input-dosage" class="form-control" placeholder="e.g. 1 Tablet, 5ml" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="med-input-quantity">Total Prescribed Units</label>
+            <input type="number" id="med-input-quantity" class="form-control" value="30" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="med-input-instructions">Instruction Timings</label>
+            <select id="med-input-instructions" class="form-control">
+              <option value="After Food">After Food (भोजन के बाद)</option>
+              <option value="Before Food">Before Food (भोजन से पहले)</option>
+              <option value="With Food">With Food (भोजन के साथ)</option>
+              <option value="Empty Stomach">Empty Stomach (खाली पेट)</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="med-input-start-date">Start Date</label>
+            <input type="date" id="med-input-start-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="med-input-end-date">End Date (Optional)</label>
+            <input type="date" id="med-input-end-date" class="form-control">
+          </div>
+        </div>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label class="form-label" style="margin-bottom:0;">Scheduled Daily Dose Timings</label>
+            <button type="button" id="btn-add-time-slot" class="btn btn-secondary btn-sm">+ Add Timing</button>
+          </div>
+          <div id="time-slots-container" class="time-slot-list"></div>
+          <small style="color:var(--text-muted);">Set times of day when Amazon CloudWatch & Lambda will trigger automated alerts.</small>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width:100%; margin-top:8px;">
+          ✓ Confirm Schedule & Enable Reminders
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <footer class="gov-footer">
+    <div class="gov-footer-links-row">
+      <div class="gov-footer-brand">
+        <h4><span>🏛️</span> National Digital Health Mission</h4>
+        <p style="font-size:0.88rem; color:#9ca3af; line-height:1.6;">
+          An initiative under the Ministry of Health & Family Welfare, Government of India. Powered by Amazon Web Services (AWS Cloud Architecture) for high-availability healthcare delivery.
+        </p>
+      </div>
+      <div class="gov-footer-col">
+        <h5>Citizen Services</h5>
+        <ul>
+          <li><a href="#" data-view="landing">Home Portal</a></li>
+          <li><a href="#" data-view="dashboard">Daily Schedule</a></li>
+          <li><a href="#" data-view="medicines">Medicine Care</a></li>
+          <li><a href="#" data-view="history">Adherence Records</a></li>
+        </ul>
+      </div>
+      <div class="gov-footer-col">
+        <h5>Official Policies</h5>
+        <ul>
+          <li><a href="#">Website Policies</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Hyperlinking Policy</a></li>
+          <li><a href="#">Terms of Use</a></li>
+        </ul>
+      </div>
+      <div class="gov-footer-col">
+        <h5>Emergency Contact</h5>
+        <ul>
+          <li style="color:#ffffff; font-weight:700;">Health Helpline: 1075</li>
+          <li style="color:#ffffff; font-weight:700;">Ambulance: 108 / 102</li>
+          <li style="color:#9ca3af;">Toll-Free: 1800-11-4477</li>
+          <li style="color:#9ca3af;">helpdesk-health@gov.in</li>
+        </ul>
+      </div>
+    </div>
+    <div class="gov-sub-footer">
+      <div>Designed & Hosted on AWS Cloud • Compliant with Guidelines for Indian Government Websites (GIGW 3.0) & WCAG 2.1 AAA</div>
+      <div>© 2026 Ministry of Health & Family Welfare. All Rights Reserved.</div>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    let currentFontSize = 16;
+    const rootEl = document.documentElement;
+    document.getElementById('btn-font-inc')?.addEventListener('click', () => {
+      if (currentFontSize < 22) {
+        currentFontSize += 2;
+        rootEl.style.setProperty('--base-font-size', currentFontSize + 'px');
+      }
+    });
+    document.getElementById('btn-font-dec')?.addEventListener('click', () => {
+      if (currentFontSize > 13) {
+        currentFontSize -= 2;
+        rootEl.style.setProperty('--base-font-size', currentFontSize + 'px');
+      }
+    });
+    document.getElementById('btn-font-reset')?.addEventListener('click', () => {
+      currentFontSize = 16;
+      rootEl.style.setProperty('--base-font-size', '16px');
+    });
+    document.getElementById('btn-contrast-toggle')?.addEventListener('click', () => {
+      document.body.classList.toggle('high-contrast');
+    });
+  </script>
+</body>
+</html>

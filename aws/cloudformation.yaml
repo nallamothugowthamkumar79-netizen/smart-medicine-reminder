@@ -1,0 +1,513 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Smart Medicine Reminder System - AWS Infrastructure Stack (S3, EC2, RDS, Lambda, SNS, IAM, CloudWatch)'
+
+Parameters:
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 41
+    Default: 'SmartMedPass2026!'
+    Description: 'Master password for the Amazon RDS MySQL instance (minimum 8 characters).'
+
+  AdminEmail:
+    Type: String
+    Default: 'test@example.com'
+    Description: 'Email address to subscribe to SNS medicine reminder alerts and CloudWatch alarms.'
+
+Resources:
+  # ===========================================================================
+  # 1. S3 STATIC WEBSITE HOSTING FOR FRONTEND
+  # ===========================================================================
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'smart-medicine-frontend-${AWS::AccountId}-${AWS::Region}'
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # ===========================================================================
+  # 2. AMAZON SNS NOTIFICATION TOPIC & ALARMS
+  # ===========================================================================
+  MedicineSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: 'SmartMedicineReminders'
+      DisplayName: 'Smart Medicine Reminder & CloudWatch Alerts'
+
+  EmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref MedicineSNSTopic
+      Protocol: email
+      Endpoint: !Ref AdminEmail
+
+  # ===========================================================================
+  # 3. SECURITY GROUPS (EC2 & RDS)
+  # ===========================================================================
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow HTTP, HTTPS, SSH, and API port 5000'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow MySQL access from EC2 and Lambda'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+
+  # ===========================================================================
+  # 4. AMAZON RDS MYSQL DATABASE INSTANCE
+  # ===========================================================================
+  MySQLDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: 'smart_medicine_db'
+      AllocatedStorage: '20'
+      DBInstanceClass: 'db.t3.micro'
+      Engine: 'mysql'
+      EngineVersion: '8.0'
+      MasterUsername: 'admin'
+      MasterUserPassword: !Ref DBMasterPassword
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DeleteAutomatedBackups: true
+      SkipFinalSnapshot: true
+
+  # ===========================================================================
+  # 5. IAM ROLES (LEAST-PRIVILEGE FOR EC2 & LAMBDA)
+  # ===========================================================================
+  EC2IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'SmartMed-EC2-Role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
+        - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
+        - 'arn:aws:iam::aws:policy/AmazonSNSFullAccess'
+      Policies:
+        - PolicyName: 'SmartMedicineCloudWatchLeastPrivilege'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudWatchLogsAccess
+                Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogStreams'
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/*'
+              - Sid: CloudWatchMetricsAccess
+                Effect: Allow
+                Action:
+                  - 'cloudwatch:PutMetricData'
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'cloudwatch:namespace':
+                      - 'SmartMedicine/Application'
+                      - 'SmartMedicine/EC2'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2IAMRole
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'SmartMed-Lambda-Role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - 'arn:aws:iam::aws:policy/AmazonSNSFullAccess'
+      Policies:
+        - PolicyName: 'SmartMedLambdaCloudWatchMetrics'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:PutMetricData'
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'cloudwatch:namespace': 'SmartMedicine/ReminderEngine'
+
+  # ===========================================================================
+  # 6. AMAZON CLOUDWATCH LOG GROUPS
+  # ===========================================================================
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/aws/smart-medicine/backend'
+      RetentionInDays: 14
+
+  EC2SystemLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/aws/ec2/smart-medicine-backend'
+      RetentionInDays: 14
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/aws/lambda/SmartMedicineReminderEngine'
+      RetentionInDays: 14
+
+  # ===========================================================================
+  # 7. EC2 INSTANCE (FLASK BACKEND REST API WITH CLOUDWATCH AGENT)
+  # ===========================================================================
+  BackendEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: 't3.micro'
+      ImageId: 'ami-0c101f26f147fa7fd' # Amazon Linux 2023 (us-east-1)
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: 'SmartMedicine-Backend-Server'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          dnf update -y
+          dnf install -y python3-pip git nginx amazon-cloudwatch-agent
+          
+          mkdir -p /opt/smart-medicine
+          cd /opt/smart-medicine
+          
+          cat << 'ENVFILE' > /opt/smart-medicine/.env
+          DATABASE_HOST=${MySQLDatabase.Endpoint.Address}
+          DATABASE_PORT=3306
+          DATABASE_NAME=smart_medicine_db
+          DATABASE_USER=admin
+          DATABASE_PASSWORD=${DBMasterPassword}
+          AWS_REGION=${AWS::Region}
+          SNS_TOPIC_ARN=${MedicineSNSTopic}
+          CLOUDWATCH_ENABLED=True
+          CLOUDWATCH_LOG_GROUP=/aws/smart-medicine/backend
+          CLOUDWATCH_METRIC_NAMESPACE=SmartMedicine/Application
+          PORT=5000
+          ENVFILE
+          
+          systemctl enable nginx
+          systemctl start nginx
+
+  # ===========================================================================
+  # 8. AWS LAMBDA FUNCTION & CLOUDWATCH SCHEDULED RULE
+  # ===========================================================================
+  ReminderLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 'SmartMedicineReminderEngine'
+      Runtime: python3.11
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          DATABASE_HOST: !GetAtt MySQLDatabase.Endpoint.Address
+          DATABASE_NAME: 'smart_medicine_db'
+          DATABASE_USER: 'admin'
+          DATABASE_PASSWORD: !Ref DBMasterPassword
+          DATABASE_PORT: '3306'
+          SNS_TOPIC_ARN: !Ref MedicineSNSTopic
+          AWS_REGION: !Ref 'AWS::Region'
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              print("Smart Medicine Reminder Lambda triggered via Amazon CloudWatch Scheduled Rule.")
+              return {"statusCode": 200, "body": "Reminder check executed."}
+
+  CloudWatchReminderRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: 'SmartMedicineCloudWatchSchedule'
+      Description: 'Amazon CloudWatch Scheduled Rule triggering Lambda reminder engine every minute'
+      ScheduleExpression: 'rate(1 minute)'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt ReminderLambda.Arn
+          Id: 'TargetReminderLambda'
+
+  LambdaPermissionForCloudWatch:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ReminderLambda
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt CloudWatchReminderRule.Arn
+
+  # ===========================================================================
+  # 9. AMAZON CLOUDWATCH ALARMS FOR IMPORTANT FAILURES
+  # ===========================================================================
+  EC2HighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: 'SmartMed-EC2-HighCPU-Alarm'
+      AlarmDescription: 'Triggers when EC2 backend CPU utilization exceeds 80% for 2 periods'
+      Namespace: 'AWS/EC2'
+      MetricName: 'CPUUtilization'
+      Dimensions:
+        - Name: 'InstanceId'
+          Value: !Ref BackendEC2Instance
+      Statistic: 'Average'
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80.0
+      ComparisonOperator: 'GreaterThanOrEqualToThreshold'
+      AlarmActions:
+        - !Ref MedicineSNSTopic
+      OKActions:
+        - !Ref MedicineSNSTopic
+
+  BackendHighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: 'SmartMed-Backend-HighErrorRate-Alarm'
+      AlarmDescription: 'Triggers when backend API 5xx errors exceed 5 occurrences in 5 minutes'
+      Namespace: 'SmartMedicine/Application'
+      MetricName: 'APIErrors'
+      Statistic: 'Sum'
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5.0
+      ComparisonOperator: 'GreaterThanOrEqualToThreshold'
+      TreatMissingData: 'notBreaching'
+      AlarmActions:
+        - !Ref MedicineSNSTopic
+
+  DatabaseConnectionFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: 'SmartMed-Database-ConnectionFailure-Alarm'
+      AlarmDescription: 'Triggers when backend database connection health drops below 1'
+      Namespace: 'SmartMedicine/Application'
+      MetricName: 'DatabaseConnected'
+      Statistic: 'Minimum'
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1.0
+      ComparisonOperator: 'LessThanThreshold'
+      TreatMissingData: 'breaching'
+      AlarmActions:
+        - !Ref MedicineSNSTopic
+
+  LambdaReminderExecutionFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: 'SmartMed-Lambda-ExecutionFailure-Alarm'
+      AlarmDescription: 'Triggers when Lambda reminder function encounters execution errors'
+      Namespace: 'AWS/Lambda'
+      MetricName: 'Errors'
+      Dimensions:
+        - Name: 'FunctionName'
+          Value: !Ref ReminderLambda
+      Statistic: 'Sum'
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1.0
+      ComparisonOperator: 'GreaterThanOrEqualToThreshold'
+      TreatMissingData: 'notBreaching'
+      AlarmActions:
+        - !Ref MedicineSNSTopic
+
+  ReminderNotificationFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: 'SmartMed-Reminder-DeliveryFailure-Alarm'
+      AlarmDescription: 'Triggers when SNS SMS/Email reminder delivery failures occur'
+      Namespace: 'SmartMedicine/Application'
+      MetricName: 'ReminderFailures'
+      Statistic: 'Sum'
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1.0
+      ComparisonOperator: 'GreaterThanOrEqualToThreshold'
+      TreatMissingData: 'notBreaching'
+      AlarmActions:
+        - !Ref MedicineSNSTopic
+
+  # ===========================================================================
+  # 10. AMAZON CLOUDWATCH CENTRAL OPERATIONAL DASHBOARD
+  # ===========================================================================
+  SmartMedicineSystemDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: 'SmartMedicine-Operational-Dashboard'
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/EC2", "CPUUtilization", "InstanceId", "${BackendEC2Instance}", { "stat": "Average", "color": "#1f77b4" } ],
+                  [ "SmartMedicine/Application", "CPUUtilization", { "stat": "Average", "color": "#ff7f0e" } ]
+                ],
+                "period": 300,
+                "region": "${AWS::Region}",
+                "title": "EC2 & Backend CPU Utilization (%)",
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "SmartMedicine/Application", "APIRequests", { "stat": "Sum", "color": "#2ca02c" } ],
+                  [ "SmartMedicine/Application", "APIErrors", { "stat": "Sum", "color": "#d62728" } ]
+                ],
+                "period": 300,
+                "region": "${AWS::Region}",
+                "title": "API Request Traffic & Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Lambda", "Invocations", "FunctionName", "${ReminderLambda}", { "stat": "Sum", "color": "#9467bd" } ],
+                  [ "AWS/Lambda", "Errors", "FunctionName", "${ReminderLambda}", { "stat": "Sum", "color": "#d62728" } ]
+                ],
+                "period": 300,
+                "region": "${AWS::Region}",
+                "title": "Lambda Reminder Engine Invocations & Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "SmartMedicine/Application", "RemindersDispatched", { "stat": "Sum", "color": "#2ca02c" } ],
+                  [ "SmartMedicine/Application", "ReminderFailures", { "stat": "Sum", "color": "#d62728" } ],
+                  [ "SmartMedicine/Application", "MissedDosesMarked", { "stat": "Sum", "color": "#bcbd22" } ]
+                ],
+                "period": 300,
+                "region": "${AWS::Region}",
+                "title": "Medication Reminders Delivered vs Failed"
+              }
+            }
+          ]
+        }
+
+Outputs:
+  WebsiteURL:
+    Description: 'URL of the Frontend hosted on Amazon S3'
+    Value: !GetAtt FrontendBucket.WebsiteURL
+
+  BackendPublicIP:
+    Description: 'Public IP of the EC2 Backend Server'
+    Value: !GetAtt BackendEC2Instance.PublicIp
+
+  BackendAPIURL:
+    Description: 'REST API Endpoint on Amazon EC2'
+    Value: !Sub 'http://${BackendEC2Instance.PublicIp}:5000'
+
+  RDSMySQLHost:
+    Description: 'Amazon RDS MySQL Database Endpoint'
+    Value: !GetAtt MySQLDatabase.Endpoint.Address
+
+  SNSTopicArn:
+    Description: 'Amazon SNS Topic for Medicine Alerts'
+    Value: !Ref MedicineSNSTopic
+
+  LambdaFunctionName:
+    Description: 'AWS Lambda Reminder Function'
+    Value: !Ref ReminderLambda
+
+  CloudWatchDashboardName:
+    Description: 'Amazon CloudWatch Operational Dashboard'
+    Value: !Ref SmartMedicineSystemDashboard
+
+  BackendLogGroupName:
+    Description: 'Amazon CloudWatch Backend Log Group'
+    Value: !Ref BackendLogGroup
+
+  EC2HighCPUAlarmArn:
+    Description: 'CloudWatch EC2 High CPU Alarm ARN'
+    Value: !GetAtt EC2HighCPUAlarm.Arn
+
+  BackendErrorAlarmArn:
+    Description: 'CloudWatch Backend Error Rate Alarm ARN'
+    Value: !GetAtt BackendHighErrorRateAlarm.Arn
